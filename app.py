@@ -159,8 +159,9 @@ def get_data(df):
     
     return positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash
 
-positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
+# Show portfolio
 
+positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
 st.dataframe(positions_df.round(2))
 download=st.button('Download positions file')
 if download:
@@ -169,12 +170,17 @@ if download:
     b64 = base64.b64encode(csv.encode()).decode()  # some strings
     linko= f'<a href="data:file/csv;base64,{b64}" download="myfilename.csv">Download csv file</a>'
     st.markdown(linko, unsafe_allow_html=True)
-
 y = positions_df['price'] * positions_df['qty']
 mylabels = positions_df['stock']
 
+# Show plots
+
 col1,col2 = st.beta_columns((1,1))
 
+# Pie plot
+
+y = positions_df['price'] * positions_df['qty']
+mylabels = positions_df['stock']
 fig3 = plt.figure(figsize=(16, 9))
 plt.pie(y, labels = mylabels)
 col1.write(fig3,use_column_width=True)
