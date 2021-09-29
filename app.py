@@ -265,15 +265,15 @@ st.markdown(linko, unsafe_allow_html=True)
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file,
-                   parse_dates=['month'])
-    title = "Your"
+                   parse_dates=['date'])
+    title = "your"
 else:    
     df = pd.read_csv('input.csv',
                     parse_dates=['date'], dayfirst=True)
-    title = "Dummy"
+    title = "a dummy"
 
 # Analytics section
-st.write("# Here is a breakdown of your portfolio \n")
+st.write(f"# Here is a breakdown of {title} portfolio \n")
 
 # Show portfolio and sidebar
 positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
