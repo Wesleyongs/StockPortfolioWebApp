@@ -287,7 +287,7 @@ st.sidebar.dataframe(positions_df[['stock','equity','qty']])
 df_temp = df.copy()
 df_temp['date'] = df_temp['date'].dt.date
 st.dataframe(df_temp)
-st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}'.'qty':'{:.2f}'.'equity':'{:.2f}'.'P&L':'{:.2f}'}))
+st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.2f}','equity':'{:.2f}','P&L':'{:.2f}'}))
 download=st.sidebar.button('Download positions file')
 if download:
     'Download Started! Please wait a link will appear below for your to download the file'
