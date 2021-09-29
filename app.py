@@ -39,7 +39,7 @@ st.write("""
 # Portfolio Analysis
 This app generates the **Portfolio Analysis** report for any given period - This report will provides insights and additional functionalities not commonly found on stock brokerages accounts \n
 This app was designed for small hedge funds who do not have in house analytical capabilities  \n
-This app logic follows the principles of last in first out (FIFO) \n
+This app logic follows the principles of first in first out (FIFO) \n
 If you wish to use your own csv, ensure the input **csv** has the following columns:  
 > 1. Date
 > 2. Stock Ticker 
@@ -56,8 +56,8 @@ def get_data(df):
     Will return positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash
     '''  
     df_positions = df.copy(deep=True)
-    sells = df_positions[df_positions['action'] == 'SELL'].sort_values(by='date')
-    exclude_sells = df_positions[df_positions['action'] != 'SELL'].sort_values(by='date')
+    sells = df_positions[df_positions['action'] == 'SELL'].sort_values(by='date').reset_index()
+    exclude_sells = df_positions[df_positions['action'] != 'SELL'].sort_values(by='date').reset_index()
     realised_gains = 0
 
     # Process first in first out 
@@ -286,8 +286,11 @@ st.sidebar.header('Your Positions')
 st.sidebar.dataframe(positions_df[['stock','equity','qty']])
 df_temp = df.copy()
 df_temp['date'] = df_temp['date'].dt.date
+st.write('### This is the input file you gave')
 st.dataframe(df_temp)
-st.dataframe(positions_df.style.format({ 'price': '{:.2f}'}))
+st.write('### These are your positions')
+st.dataframe(positions_df)
+# st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}'.'qty':'{:.2f}'.'equity':'{:.2f}'.'P&L':'{:.2f}'}))
 download=st.sidebar.button('Download positions file')
 if download:
     'Download Started! Please wait a link will appear below for your to download the file'
