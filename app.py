@@ -33,27 +33,25 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import yfinance as yf
 
-###########
-# heading #
-###########
+# Heading 
 st.set_page_config(layout="wide")
 st.write("""
 # Portfolio Analysis
 This app generates the **Portfolio Analysis** report for any given period - This report will provides insights and additional functionalities not commonly found on stock brokerages accounts \n
-This app was design with Tiger Brokers statment export feature \n
+This app was designed for small hedge funds who do not have in house analytical capabilities  \n
+This app logic follows the principles of last in first out (LIFO) \n
 If you wish to use your own csv, ensure the input **csv** has the following columns:  
-> 1. tbd  
-> 2. tbd  
-> 3. tbd      
+> 1. Date
+> 2. Stock Ticker [CASH for desposit,withdrawals and rebates]  
+> 3. Action [BUY,SELL,DEPOSIT,WITHDRAWAL,REBATE]      
+> 4. Qty [include - for sells and 1 for non stock related transactions]
+> 5. Price [Price of stock or value of CASH]
 
 Created by [Someone](https://wesleyongs.com/).
 """)
 
-################
-# Upload Files #
-################
+# Upload Files 
 
-# SG
 uploaded_file = st.file_uploader('Upload CSV file', type="csv")
     
 if uploaded_file is not None:
