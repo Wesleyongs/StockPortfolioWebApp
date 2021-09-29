@@ -39,13 +39,13 @@ st.write("""
 # Portfolio Analysis
 This app generates the **Portfolio Analysis** report for any given period - This report will provides insights and additional functionalities not commonly found on stock brokerages accounts \n
 This app was designed for small hedge funds who do not have in house analytical capabilities  \n
-This app logic follows the principles of last in first out (LIFO) \n
+This app logic follows the principles of last in first out (FIFO) \n
 If you wish to use your own csv, ensure the input **csv** has the following columns:  
 > 1. Date
-> 2. Stock Ticker [CASH for desposit,withdrawals and rebates]  
-> 3. Action [BUY,SELL,DEPOSIT,WITHDRAWAL,REBATE]      
-> 4. Qty [include - for sells and 1 for non stock related transactions]
-> 5. Price [Price of stock or value of CASH]
+> 2. Stock Ticker 
+> 3. Action   
+> 4. Qty 
+> 5. Price 
 
 Created by [FA G3](https://wesleyongs.com/).
 """)
@@ -237,6 +237,8 @@ def pnl_chart(df_input):
     dates = df_input['date']
     pnl = [0]
     portfolio_dict = {}
+    # st.dataframe(df_input['date'])
+    # st.dataframe(dates)
 
     ## The logic is flawed here, it is only assuming 1 action per day (fix later)
     ## The code doesnt handle repeating the same stock (fix later)
@@ -265,12 +267,15 @@ st.markdown(linko, unsafe_allow_html=True)
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file,
-                   parse_dates=['date'])
+                   parse_dates=['date'], dayfirst=True)
     title = "your"
 else:    
     df = pd.read_csv('input.csv',
                     parse_dates=['date'], dayfirst=True)
     title = "a dummy"
+    
+# Clean data
+df['date'] = df['date']
 
 # Analytics section
 st.write(f"# Here is a breakdown of {title} portfolio \n")
@@ -279,6 +284,9 @@ st.write(f"# Here is a breakdown of {title} portfolio \n")
 positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
 st.sidebar.header('Your Positions')
 st.sidebar.dataframe(positions_df[['stock','equity','qty']])
+df_temp = df.copy()
+df_temp['date'] = df_temp['date'].dt.date
+st.dataframe(df_temp)
 st.dataframe(positions_df.round(2))
 download=st.sidebar.button('Download positions file')
 if download:
