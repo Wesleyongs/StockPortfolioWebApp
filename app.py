@@ -18,6 +18,20 @@ import base64
 from io import BytesIO
 import datetime as dt
 from pandas_datareader import data
+import pandas as pd
+import numpy as np
+import chart_studio.plotly as py
+import cufflinks as cf
+import seaborn as sns
+import plotly.express as px
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+init_notebook_mode(connected=True)
+cf.go_offline()
+import datetime as dt
+import plotly.graph_objects as go_offline
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import yfinance as yf
 
 ###########
 # heading #
@@ -52,7 +66,7 @@ else:
     title = "Dummy"
 
 # Download table 
-def get_table_download_link(df):
+# def get_table_download_link(df):
     """Generates a link allowing the data in a given panda dataframe to be downloaded
     in:  dataframe
     out: href string
@@ -117,7 +131,6 @@ def get_data(df):
     positions_df = pd.DataFrame(data=positions, index=['qty','price']).T.reset_index().rename(columns={'index':'stock'})
 
     # Add in current prices
-
     tickers = list(df.stock.unique())
     tickers.remove('Cash')
 
@@ -141,15 +154,11 @@ def get_data(df):
                            positions_df['price']) * positions_df['qty']
 
     # Realised gains, unrealised, portfolio size, available cash
-    print(realised_gains)
     unrealised_gains = positions_df['P&L'].sum()
-    print(unrealised_gains)
     portfolio_size = df[df['action'] == 'Deposit']['price'].astype(
         'int').sum() - df[df['action'] == 'Withdraw']['price'].astype('int').sum()
-    print(portfolio_size)
     available_cash = df[df['action'] == 'Deposit']['price'].astype(
         'int').sum() - (positions_df['price'] * positions_df['qty']).sum()
-    print(available_cash)
     positions_df.round(3)
     
     # Touching up 
@@ -159,8 +168,117 @@ def get_data(df):
     
     return positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash
 
-# Show portfolio
+def industry_pie(positions_df):
+    
+    sector_list = []
+    stocks = positions_df['stock'] 
+    for each in stocks:
+        stock_info = yf.Ticker(each)
+        if "sector" in stock_info.info:
+            sector_list.append(stock_info.info['sector'])
+        else:
+            sector_list.append("Others")
+            
+    df2 = positions_df.assign(sector = sector_list)        
+        
+    labels = df2['sector']
 
+    # Create subplots: use 'domain' type for Pie subplot
+    fig = make_subplots(rows=1, cols=2, specs=[[{'type':'domain'}, {'type':'domain'}]])
+    fig.add_trace(go.Pie(labels=labels, values= df2['qty']*df2['current_prices'], name="Asset"),
+                1, 1)
+    fig.add_trace(go.Pie(labels=labels, values= df2['P&L'], name="P&L"),
+                1, 2)
+
+    # Use `hole` to create a donut-like pie chart
+    fig.update_traces(hole=.5)
+    fig.update_traces(textposition='outside', textinfo='label+value')
+    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        title_text="Portfolio Breakdown",
+            font=dict(
+            size=14,
+        ),
+        # Add annotations in the center of the donut pies.
+        annotations=[dict(text='Asset', x=0.19, y=0.5, font_size=20, showarrow=False),
+                    dict(text='P&L', x=0.80, y=0.5, font_size=20, showarrow=False)])
+    
+    return fig
+
+def positions_pie(positions_df):
+    labels = positions_df['stock']
+
+    # Create subplots: use 'domain' type for Pie subplot
+    fig = make_subplots(rows=1, cols=2, specs=[[{'type':'domain'}, {'type':'domain'}]])
+    fig.add_trace(go.Pie(labels=labels, values= positions_df['qty']*positions_df['current_prices'], name="Asset"),
+                1, 1)
+    fig.add_trace(go.Pie(labels=labels, values= positions_df['P&L'], name="P&L"),
+                1, 2)
+
+    # Use `hole` to create a donut-like pie chart
+    fig.update_traces(hole=.5)
+    fig.update_traces(textposition='outside', textinfo='label+value')
+    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        title_text="Portfolio Breakdown",
+        font=dict(
+            size=14,
+        ),
+        # Add annotations in the center of the donut pies.
+        annotations=[dict(text='Asset', x=0.19, y=0.5, font_size=20, showarrow=False),
+                    dict(text='P&L', x=0.80, y=0.5, font_size=20, showarrow=False)])
+    return fig
+
+def ahv_chart(df_portfolio):
+    tickers = list(df_portfolio['stock'])
+    today = dt.date.today()
+    year_ago = dt.date.today() - dt.timedelta(days=365)
+
+    start_date = year_ago.strftime("%Y-%m-%d")
+    end_date = today.strftime("%Y-%m-%d")
+
+
+    panel_data = data.DataReader(tickers, 'yahoo', start_date, end_date)
+
+    close_price = panel_data['Close']
+    adj_close = panel_data['Adj Close']
+    ahv = np.sqrt(np.log(close_price/close_price.shift(1)).var()) * np.sqrt(252)
+    ahv_pct = ahv*100
+    
+    ahv_pct = pd.DataFrame(ahv_pct)
+    ahv_pct.rename(columns = {0:'Annualized Historical Volatility'}, inplace=True)
+    ahv_pct = ahv_pct.rename_axis('Ticker').reset_index()
+    
+    return (px.bar(ahv_pct,
+       x='Ticker',
+       y='Annualized Historical Volatility',
+       title="Annualized Historical Volatility of individual stocks in portfolio",
+      color="Ticker"))
+
+def pnl_chart(df_input):
+    dates = df_input['date']
+    pnl = [0]
+    portfolio_dict = {}
+
+    ## The logic is flawed here, it is only assuming 1 action per day (fix later)
+    ## The code doesnt handle repeating the same stock (fix later)
+    for i in range(len(df_input)):
+        if df_input['action'][i] == 'BUY':
+            portfolio_dict[df_input['stock'][i]] = [df_input['qty'][i], df_input['price'][i]]
+        if df_input['action'][i] != 'SELL':
+            pnl += [pnl[-1]+0]
+        elif df_input['action'][i] == 'SELL':
+            pnl += [pnl[-1]+abs(df_input['qty'][i])*(df_input['price'][i]-portfolio_dict[df_input['stock'][i]][1])]
+    pnl = pnl[1:]
+    daily_pnl = pd.DataFrame(dates)
+    daily_pnl['Daily PnL'] = pd.DataFrame(pnl)
+    daily_pnl['date'] = pd.to_datetime(daily_pnl['date'], format='%d-%m-%y')
+    return (px.line(daily_pnl,
+        x = 'date',
+        y = 'Daily PnL',
+       title="Daily PnL"))
+
+# Show portfolio
 positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
 st.dataframe(positions_df.round(2))
 download=st.button('Download positions file')
@@ -173,14 +291,17 @@ if download:
 y = positions_df['price'] * positions_df['qty']
 mylabels = positions_df['stock']
 
+# Line plot
+fig = ahv_chart(positions_df)
+st.write(fig)
+fig = pnl_chart(df)
+st.write(fig)
+
+# Pie plotly
+fig = positions_pie(positions_df)
+st.write(fig)
+fig = industry_pie(positions_df)
+st.write(fig)
+
 # Show plots
-
-col1,col2 = st.beta_columns((1,1))
-
-# Pie plot
-
-y = positions_df['price'] * positions_df['qty']
-mylabels = positions_df['stock']
-fig3 = plt.figure(figsize=(16, 9))
-plt.pie(y, labels = mylabels)
-col1.write(fig3,use_column_width=True)
+# col1,col2 = st.beta_columns((1,1))
