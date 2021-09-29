@@ -47,13 +47,17 @@ If you wish to use your own csv, ensure the input **csv** has the following colu
 > 4. Qty [include - for sells and 1 for non stock related transactions]
 > 5. Price [Price of stock or value of CASH]
 
-Created by [Someone](https://wesleyongs.com/).
+Created by [FA G3](https://wesleyongs.com/).
 """)
 
 # Upload Files 
 
 uploaded_file = st.file_uploader('Upload CSV file', type="csv")
-    
+csv = 'input.csv'
+b64 = base64.b64encode(csv.encode()).decode()  # some strings
+linko= f'<a href="data:file/csv;base64,{b64}" download="input.csv">Download sample csv file</a>'
+st.markdown(linko, unsafe_allow_html=True)    
+
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file,
                    parse_dates=['month'])
@@ -278,16 +282,17 @@ def pnl_chart(df_input):
 
 # Show portfolio
 positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
-st.dataframe(positions_df.round(2))
-download=st.button('Download positions file')
+st.sidebar.dataframe(positions_df.round(2))
+download=st.sidebar.button('Download positions file')
 if download:
     'Download Started! Please wait a link will appear below for your to download the file'
     csv = positions_df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()  # some strings
     linko= f'<a href="data:file/csv;base64,{b64}" download="myfilename.csv">Download csv file</a>'
-    st.markdown(linko, unsafe_allow_html=True)
-y = positions_df['price'] * positions_df['qty']
-mylabels = positions_df['stock']
+    st.sidebar.markdown(linko, unsafe_allow_html=True)
+    
+# y = positions_df['price'] * positions_df['qty']
+# mylabels = positions_df['stock']
 
 # Line plot
 fig = ahv_chart(positions_df)
