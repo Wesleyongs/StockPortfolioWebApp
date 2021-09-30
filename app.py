@@ -288,14 +288,14 @@ st.write(f"# Here is a breakdown of {title} portfolio \n")
 # Show portfolio and sidebar
 positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
 st.sidebar.header('Your Positions')
-st.sidebar.dataframe(positions_df[['stock','equity','qty']])
+st.sidebar.dataframe(positions_df[['stock','equity','qty']].style.format({'qty':'{:.0f}','equity':'{:.0f}'))
 df_temp = df.copy()
 df_temp['date'] = df_temp['date'].dt.date
 st.write('### This is the input file you gave')
 st.dataframe(df_temp)
 st.write('### These are your positions')
 # st.dataframe(positions_df)
-st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.2f}','equity':'{:.2f}','P&L':'{:.2f}'}))
+st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.0f}','equity':'{:.0f}','P&L':'{:.0f}'}))
 download=st.sidebar.button('Download positions file')
 if download:
     'Download Started! Please wait a link will appear below for your to download the file'
