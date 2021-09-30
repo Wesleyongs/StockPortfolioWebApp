@@ -128,8 +128,8 @@ def get_data(df):
     positions_df['current_prices'] = current_prices
 
     # Adding in floating profits
-    positions_df['P&L'] = (positions_df['current_prices'] -
-                           positions_df['price']) * positions_df['qty']
+    positions_df['P&L'] = ((positions_df['current_prices'] -
+                           positions_df['price'])) * positions_df['qty']
 
     # Realised gains, unrealised, portfolio size, available cash
     unrealised_gains = positions_df['P&L'].sum()
@@ -173,7 +173,10 @@ def industry_pie(positions_df):
     fig.update_traces(textposition='outside', textinfo='label+value')
     fig.update_layout(showlegend=False)
     fig.update_layout(
+        
         title_text="Portfolio Breakdown",
+            width=1500,
+            height=500,
             font=dict(
             size=14,
         ),
@@ -198,7 +201,9 @@ def positions_pie(positions_df):
     fig.update_traces(textposition='outside', textinfo='label+value')
     fig.update_layout(showlegend=False)
     fig.update_layout(
-        title_text="Portfolio Breakdown",
+        title_text="Industry Breakdown",
+        width=1500,
+        height=500,
         font=dict(
             size=14,
         ),
@@ -289,8 +294,8 @@ df_temp['date'] = df_temp['date'].dt.date
 st.write('### This is the input file you gave')
 st.dataframe(df_temp)
 st.write('### These are your positions')
-st.dataframe(positions_df)
-# st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}'.'qty':'{:.2f}'.'equity':'{:.2f}'.'P&L':'{:.2f}'}))
+# st.dataframe(positions_df)
+st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.2f}','equity':'{:.2f}','P&L':'{:.2f}'}))
 download=st.sidebar.button('Download positions file')
 if download:
     'Download Started! Please wait a link will appear below for your to download the file'
@@ -310,8 +315,8 @@ col2.write(fig)
 
 # Pie plotly
 fig = positions_pie(positions_df)
-col1.write(fig)
+st.plotly_chart(fig)
 fig = industry_pie(positions_df)
-col2.write(fig)
+st.write(fig)
 
 
