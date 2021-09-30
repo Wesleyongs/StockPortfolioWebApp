@@ -288,7 +288,7 @@ st.write(f"# Here is a breakdown of {title} portfolio \n")
 # Show portfolio and sidebar
 positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
 st.sidebar.header('Your Positions')
-st.sidebar.dataframe(positions_df[['stock','equity','qty']].style.format({'qty':'{:.0f}','equity':'{:.0f}'))
+st.sidebar.dataframe(positions_df[['stock','equity','qty']].style.format({'qty':'{:.0f}','equity':'{:.0f}'}))
 df_temp = df.copy()
 df_temp['date'] = df_temp['date'].dt.date
 st.write('### This is the input file you gave')
