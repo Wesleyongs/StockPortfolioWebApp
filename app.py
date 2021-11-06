@@ -25,6 +25,7 @@ import cufflinks as cf
 import seaborn as sns
 import plotly.express as px
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+
 init_notebook_mode(connected=True)
 cf.go_offline()
 import datetime as dt
@@ -33,9 +34,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import yfinance as yf
 
-# Heading 
+# Heading
 st.set_page_config(layout="wide")
-st.write("""
+st.write(
+    """
 # Portfolio Analysis
 This app generates the **Portfolio Analysis** report for any given period - This report will provides insights and additional functionalities not commonly found on stock brokerages accounts \n
 This app was designed for small hedge funds who do not have in house analytical capabilities  \n
@@ -48,157 +50,167 @@ If you wish to use your own csv, ensure the input **csv** has the following colu
 > 5. Price 
 
 Created by [FA G3](https://wesleyongs.com/).
-""")
+"""
+)
 
 # Helper Functions
 def get_data(df):
-    '''
+    """
+    Takes in the input df and outputs the positions df among other variables
     Will return positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash
-    '''  
+    """
     df_positions = df.copy(deep=True)
-    sells = df_positions[df_positions['action'] == 'SELL'].sort_values(by='date').reset_index()
-    exclude_sells = df_positions[df_positions['action'] != 'SELL'].sort_values(by='date').reset_index()
+    sells = (
+        df_positions[df_positions["action"] == "SELL"]
+        .sort_values(by="date")
+        .reset_index()
+    )
+    exclude_sells = (
+        df_positions[df_positions["action"] != "SELL"]
+        .sort_values(by="date")
+        .reset_index()
+    )
     realised_gains = 0
 
-    # Process first in first out 
+    # Process first in first out
     for idx, row in sells.iterrows():
 
-        stock = row['stock']
-        count = row['qty']
-        sell_price = row['price']
+        stock = row["stock"]
+        count = row["qty"]
+        sell_price = row["price"]
         while abs(count) > 0:
 
             # Find first occurance of stock
             first_index = (exclude_sells.stock.values == stock).argmax()
 
             # Exact amount
-            if exclude_sells.iloc[first_index]['qty'] == abs(count):
+            if exclude_sells.iloc[first_index]["qty"] == abs(count):
                 exclude_sells.drop([first_index])
-                realised_gains += (sell_price - exclude_sells.at[first_index,'price']) * count
+                realised_gains += (
+                    sell_price - exclude_sells.at[first_index, "price"]
+                ) * count
                 count = 0
             # Enough to sell
-            elif exclude_sells.iloc[first_index]['qty'] > abs(count):
-                exclude_sells.at[first_index,'qty'] += count
-                realised_gains += (sell_price - exclude_sells.at[first_index,'price']) * count
+            elif exclude_sells.iloc[first_index]["qty"] > abs(count):
+                exclude_sells.at[first_index, "qty"] += count
+                realised_gains += (
+                    sell_price - exclude_sells.at[first_index, "price"]
+                ) * count
                 count = 0
             # Not enough
             else:
                 exclude_sells.drop([first_index])
-                realised_gains += (sell_price - exclude_sells.at[first_index,'price']) * exclude_sells.at[first_index,'qty']
-                count += exclude_sells.at[first_index,'qty']
+                realised_gains += (
+                    sell_price - exclude_sells.at[first_index, "price"]
+                ) * exclude_sells.at[first_index, "qty"]
+                count += exclude_sells.at[first_index, "qty"]
 
     # Find the current positions
     positions = {}
-    buys = exclude_sells[exclude_sells['action'] == 'BUY'].sort_values(by='date')
-    for idx,row in buys.iterrows():
+    buys = exclude_sells[exclude_sells["action"] == "BUY"].sort_values(by="date")
+    for idx, row in buys.iterrows():
 
-        stock = row['stock']
-        qty = int(row['qty'])
-        price = int(row['price'])
+        stock = row["stock"]
+        qty = int(row["qty"])
+        price = int(row["price"])
 
         if stock not in positions.keys():
-            positions[stock] = [qty,price]
+            positions[stock] = [qty, price]
         else:
             new_qty = qty + positions[stock][0]
-            new_price = ((qty*price) + (positions[stock][0]*positions[stock][1])) / new_qty
-            positions[stock] = [new_qty,new_price]
-            
-    positions_df = pd.DataFrame(data=positions, index=['qty','price']).T.reset_index().rename(columns={'index':'stock'})
-    
+            new_price = (
+                (qty * price) + (positions[stock][0] * positions[stock][1])
+            ) / new_qty
+            positions[stock] = [new_qty, new_price]
+
+    positions_df = (
+        pd.DataFrame(data=positions, index=["qty", "price"])
+        .T.reset_index()
+        .rename(columns={"index": "stock"})
+    )
+
     # Total equity
-    positions_df['equity'] = positions_df['qty'] * positions_df['price']
+    positions_df["equity"] = positions_df["qty"] * positions_df["price"]
 
     # Add in current prices
     tickers = list(df.stock.unique())
-    tickers.remove('Cash')
+    tickers.remove("Cash")
 
     date = dt.date.today() - dt.timedelta(days=1)
 
-    panel_data = data.DataReader(tickers, 'yahoo', date, date)
+    panel_data = data.DataReader(tickers, "yahoo", date, date)
 
     current_prices = []
 
     for idx, row in positions_df.iterrows():
 
-        stock = row['stock']
+        stock = row["stock"]
 
-        price = panel_data['Close'][stock].tail(1)[0]
+        price = panel_data["Close"][stock].tail(1)[0]
         current_prices.append(price)
 
-    positions_df['current_prices'] = current_prices
+    positions_df["current_prices"] = current_prices
 
     # Adding in floating profits
-    positions_df['P&L'] = ((positions_df['current_prices'] -
-                           positions_df['price'])) * positions_df['qty']
+    positions_df["P&L"] = (
+        (positions_df["current_prices"] - positions_df["price"])
+    ) * positions_df["qty"]
 
     # Realised gains, unrealised, portfolio size, available cash
-    unrealised_gains = positions_df['P&L'].sum()
-    portfolio_size = df[df['action'] == 'Deposit']['price'].astype(
-        'int').sum() - df[df['action'] == 'Withdraw']['price'].astype('int').sum()
-    available_cash = df[df['action'] == 'Deposit']['price'].astype(
-        'int').sum() - (positions_df['price'] * positions_df['qty']).sum()
+    unrealised_gains = positions_df["P&L"].sum()
+    portfolio_size = (
+        df[df["action"] == "Deposit"]["price"].astype("int").sum()
+        - df[df["action"] == "Withdraw"]["price"].astype("int").sum()
+    )
+    available_cash = (
+        df[df["action"] == "Deposit"]["price"].astype("int").sum()
+        - (positions_df["price"] * positions_df["qty"]).sum()
+    )
     positions_df.round(3)
-    
-    # Touching up 
-    positions_df[['price']] = positions_df[['price']].round(2)
-    positions_df[['current_prices']] = positions_df[['current_prices']].round(2)
-    positions_df[['P&L']] =  positions_df[['P&L']].round(0)
-    
-    return positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash
+
+    # Touching up
+    positions_df[["price"]] = positions_df[["price"]].round(2)
+    positions_df[["current_prices"]] = positions_df[["current_prices"]].round(2)
+    positions_df[["P&L"]] = positions_df[["P&L"]].round(0)
+
+    return (
+        positions_df,
+        realised_gains,
+        unrealised_gains,
+        portfolio_size,
+        available_cash,
+    )
+
 
 def industry_pie(positions_df):
-    
+
     sector_list = []
-    stocks = positions_df['stock'] 
+    stocks = positions_df["stock"]
     for each in stocks:
         stock_info = yf.Ticker(each)
         if "sector" in stock_info.info:
-            sector_list.append(stock_info.info['sector'])
+            sector_list.append(stock_info.info["sector"])
         else:
             sector_list.append("Others")
-            
-    df2 = positions_df.assign(sector = sector_list)        
-        
-    labels = df2['sector']
+
+    df2 = positions_df.assign(sector=sector_list)
+
+    labels = df2["sector"]
 
     # Create subplots: use 'domain' type for Pie subplot
-    fig = make_subplots(rows=1, cols=2, specs=[[{'type':'domain'}, {'type':'domain'}]])
-    fig.add_trace(go.Pie(labels=labels, values= df2['qty']*df2['current_prices'], name="Asset"),
-                1, 1)
-    fig.add_trace(go.Pie(labels=labels, values= df2['P&L'], name="P&L"),
-                1, 2)
+    fig = make_subplots(
+        rows=1, cols=2, specs=[[{"type": "domain"}, {"type": "domain"}]]
+    )
+    fig.add_trace(
+        go.Pie(labels=labels, values=df2["qty"] * df2["current_prices"], name="Asset"),
+        1,
+        1,
+    )
+    fig.add_trace(go.Pie(labels=labels, values=df2["P&L"], name="P&L"), 1, 2)
 
     # Use `hole` to create a donut-like pie chart
-    fig.update_traces(hole=.5)
-    fig.update_traces(textposition='outside', textinfo='label+value')
-    fig.update_layout(showlegend=False)
-    fig.update_layout(
-        
-        title_text="Portfolio Breakdown",
-            width=1500,
-            height=500,
-            font=dict(
-            size=14,
-        ),
-        # Add annotations in the center of the donut pies.
-        annotations=[dict(text='Asset', x=0.19, y=0.5, font_size=20, showarrow=False),
-                    dict(text='P&L', x=0.80, y=0.5, font_size=20, showarrow=False)])
-    
-    return fig
-
-def positions_pie(positions_df):
-    labels = positions_df['stock']
-
-    # Create subplots: use 'domain' type for Pie subplot
-    fig = make_subplots(rows=1, cols=2, specs=[[{'type':'domain'}, {'type':'domain'}]])
-    fig.add_trace(go.Pie(labels=labels, values= positions_df['qty']*positions_df['current_prices'], name="Asset"),
-                1, 1)
-    fig.add_trace(go.Pie(labels=labels, values= positions_df['P&L'], name="P&L"),
-                1, 2)
-
-    # Use `hole` to create a donut-like pie chart
-    fig.update_traces(hole=.5)
-    fig.update_traces(textposition='outside', textinfo='label+value')
+    fig.update_traces(hole=0.5)
+    fig.update_traces(textposition="outside", textinfo="label+value")
     fig.update_layout(showlegend=False)
     fig.update_layout(
         title_text="Industry Breakdown",
@@ -208,38 +220,83 @@ def positions_pie(positions_df):
             size=14,
         ),
         # Add annotations in the center of the donut pies.
-        annotations=[dict(text='Asset', x=0.19, y=0.5, font_size=20, showarrow=False),
-                    dict(text='P&L', x=0.80, y=0.5, font_size=20, showarrow=False)])
+        annotations=[
+            dict(text="Asset", x=0.19, y=0.5, font_size=20, showarrow=False),
+            dict(text="P&L", x=0.80, y=0.5, font_size=20, showarrow=False),
+        ],
+    )
+
     return fig
 
+
+def positions_pie(positions_df):
+    labels = positions_df["stock"]
+
+    # Create subplots: use 'domain' type for Pie subplot
+    fig = make_subplots(
+        rows=1, cols=2, specs=[[{"type": "domain"}, {"type": "domain"}]]
+    )
+    fig.add_trace(
+        go.Pie(
+            labels=labels,
+            values=positions_df["qty"] * positions_df["current_prices"],
+            name="Asset",
+        ),
+        1,
+        1,
+    )
+    fig.add_trace(go.Pie(labels=labels, values=positions_df["P&L"], name="P&L"), 1, 2)
+
+    # Use `hole` to create a donut-like pie chart
+    fig.update_traces(hole=0.5)
+    fig.update_traces(textposition="outside", textinfo="label+value")
+    fig.update_layout(showlegend=False)
+    fig.update_layout(
+        title_text="Portfolio Breakdown",
+        width=1500,
+        height=500,
+        font=dict(
+            size=14,
+        ),
+        # Add annotations in the center of the donut pies.
+        annotations=[
+            dict(text="Asset", x=0.19, y=0.5, font_size=20, showarrow=False),
+            dict(text="P&L", x=0.80, y=0.5, font_size=20, showarrow=False),
+        ],
+    )
+    return fig
+
+
 def ahv_chart(df_portfolio):
-    tickers = list(df_portfolio['stock'])
+    tickers = list(df_portfolio["stock"])
     today = dt.date.today()
     year_ago = dt.date.today() - dt.timedelta(days=365)
 
     start_date = year_ago.strftime("%Y-%m-%d")
     end_date = today.strftime("%Y-%m-%d")
 
+    panel_data = data.DataReader(tickers, "yahoo", start_date, end_date)
 
-    panel_data = data.DataReader(tickers, 'yahoo', start_date, end_date)
+    close_price = panel_data["Close"]
+    adj_close = panel_data["Adj Close"]
+    ahv = np.sqrt(np.log(close_price / close_price.shift(1)).var()) * np.sqrt(252)
+    ahv_pct = ahv * 100
 
-    close_price = panel_data['Close']
-    adj_close = panel_data['Adj Close']
-    ahv = np.sqrt(np.log(close_price/close_price.shift(1)).var()) * np.sqrt(252)
-    ahv_pct = ahv*100
-    
     ahv_pct = pd.DataFrame(ahv_pct)
-    ahv_pct.rename(columns = {0:'Annualized Historical Volatility'}, inplace=True)
-    ahv_pct = ahv_pct.rename_axis('Ticker').reset_index()
-    
-    return (px.bar(ahv_pct,
-       x='Ticker',
-       y='Annualized Historical Volatility',
-       title="Annualized Historical Volatility of individual stocks in portfolio",
-      color="Ticker"))
+    ahv_pct.rename(columns={0: "Annualized Historical Volatility"}, inplace=True)
+    ahv_pct = ahv_pct.rename_axis("Ticker").reset_index()
+
+    return px.bar(
+        ahv_pct,
+        x="Ticker",
+        y="Annualized Historical Volatility",
+        title="Annualized Historical Volatility of individual stocks in portfolio",
+        color="Ticker",
+    )
+
 
 def pnl_chart(df_input):
-    dates = df_input['date']
+    dates = df_input["date"]
     pnl = [0]
     portfolio_dict = {}
     # st.dataframe(df_input['date'])
@@ -248,64 +305,73 @@ def pnl_chart(df_input):
     ## The logic is flawed here, it is only assuming 1 action per day (fix later)
     ## The code doesnt handle repeating the same stock (fix later)
     for i in range(len(df_input)):
-        if df_input['action'][i] == 'BUY':
-            portfolio_dict[df_input['stock'][i]] = [df_input['qty'][i], df_input['price'][i]]
-        if df_input['action'][i] != 'SELL':
-            pnl += [pnl[-1]+0]
-        elif df_input['action'][i] == 'SELL':
-            pnl += [pnl[-1]+abs(df_input['qty'][i])*(df_input['price'][i]-portfolio_dict[df_input['stock'][i]][1])]
+        if df_input["action"][i] == "BUY":
+            portfolio_dict[df_input["stock"][i]] = [
+                df_input["qty"][i],
+                df_input["price"][i],
+            ]
+        if df_input["action"][i] != "SELL":
+            pnl += [pnl[-1] + 0]
+        elif df_input["action"][i] == "SELL":
+            pnl += [
+                pnl[-1]
+                + abs(df_input["qty"][i])
+                * (df_input["price"][i] - portfolio_dict[df_input["stock"][i]][1])
+            ]
     pnl = pnl[1:]
     daily_pnl = pd.DataFrame(dates)
-    daily_pnl['Daily PnL'] = pd.DataFrame(pnl)
-    daily_pnl['date'] = pd.to_datetime(daily_pnl['date'], format='%d-%m-%y')
-    return (px.line(daily_pnl,
-        x = 'date',
-        y = 'Daily PnL',
-       title="Daily PnL"))
+    daily_pnl["Daily PnL"] = pd.DataFrame(pnl)
+    daily_pnl["date"] = pd.to_datetime(daily_pnl["date"], format="%d-%m-%y")
+    return px.line(daily_pnl, x="date", y="Daily PnL", title="Daily PnL")
 
-# Upload Files 
-uploaded_file = st.file_uploader('Upload CSV file', type="csv")
-csv = 'input.csv'
+
+# Upload Files
+uploaded_file = st.file_uploader("Upload CSV file", type="csv")
+csv = "input.csv"
 b64 = base64.b64encode(csv.encode()).decode()  # some strings
-linko= f'<a href="data:file/csv;base64,{b64}" download="input.csv">Download sample csv file</a>'
-st.markdown(linko, unsafe_allow_html=True)    
+linko = f'<a href="data:file/csv;base64,{b64}" download="input.csv">Download sample csv file</a>'
+st.markdown(linko, unsafe_allow_html=True)
 
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file,
-                   parse_dates=['date'], dayfirst=True)
+    df = pd.read_csv(uploaded_file, parse_dates=["date"], dayfirst=True)
     title = "your"
-else:    
-    df = pd.read_csv('input.csv',
-                    parse_dates=['date'], dayfirst=True)
+else:
+    df = pd.read_csv("input.csv", parse_dates=["date"], dayfirst=True)
     title = "a dummy"
-    
+
 # Clean data
-df['date'] = df['date']
+df["date"] = df["date"]
 
 # Analytics section
 st.write(f"# Here is a breakdown of {title} portfolio \n")
 
 # Show portfolio and sidebar
-positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
-st.sidebar.header('Your Positions')
-st.sidebar.dataframe(positions_df[['stock','equity','qty']])
+(
+    positions_df,
+    realised_gains,
+    unrealised_gains,
+    portfolio_size,
+    available_cash,
+) = get_data(df)
+st.sidebar.header("Your Positions")
+# st.sidebar.dataframe(positions_df[['stock','equity','qty']].style.format({'qty':'{:.0f}','equity':'{:.0f}'}))
 df_temp = df.copy()
-df_temp['date'] = df_temp['date'].dt.date
-st.write('### This is the input file you gave')
+df_temp["date"] = df_temp["date"].dt.date
+st.write("### This is the input file you gave")
 st.dataframe(df_temp)
-st.write('### These are your positions')
-# st.dataframe(positions_df)
-st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.2f}','equity':'{:.2f}','P&L':'{:.2f}'}))
-download=st.sidebar.button('Download positions file')
+st.write("### These are your positions")
+st.dataframe(positions_df)
+# st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.2f}','equity':'{:.2f}','P&L':'{:.2f}'}))
+download = st.sidebar.button("Download positions file")
 if download:
-    'Download Started! Please wait a link will appear below for your to download the file'
+    "Download Started! Please wait a link will appear below for your to download the file"
     csv = positions_df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()  # some strings
-    linko= f'<a href="data:file/csv;base64,{b64}" download="myfilename.csv">Download csv file</a>'
+    linko = f'<a href="data:file/csv;base64,{b64}" download="myfilename.csv">Download csv file</a>'
     st.sidebar.markdown(linko, unsafe_allow_html=True)
 
 # Show plots
-col1,col2 = st.beta_columns((1,1))   
+col1, col2 = st.beta_columns((1, 1))
 
 # Line plot
 fig = ahv_chart(positions_df)
@@ -318,5 +384,3 @@ fig = positions_pie(positions_df)
 st.plotly_chart(fig)
 fig = industry_pie(positions_df)
 st.write(fig)
-
-
