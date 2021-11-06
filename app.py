@@ -1,3 +1,4 @@
+from seaborn.matrix import heatmap
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -33,6 +34,9 @@ import plotly.graph_objects as go_offline
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import yfinance as yf
+
+from correlation_asset_distribution import *
+from volatility_sharpe import *
 
 # Heading
 st.set_page_config(layout="wide")
@@ -217,7 +221,7 @@ def industry_pie(positions_df):
         width=1500,
         height=500,
         font=dict(
-            size=14,
+            size=10,
         ),
         # Add annotations in the center of the donut pies.
         annotations=[
@@ -256,7 +260,7 @@ def positions_pie(positions_df):
         width=1500,
         height=500,
         font=dict(
-            size=14,
+            size=10,
         ),
         # Add annotations in the center of the donut pies.
         annotations=[
@@ -336,7 +340,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file, parse_dates=["date"], dayfirst=True)
     title = "your"
 else:
-    df = pd.read_csv("input.csv", parse_dates=["date"], dayfirst=True)
+    df = pd.read_csv("files/input.csv", parse_dates=["date"], dayfirst=True)
     title = "a dummy"
 
 # Clean data
@@ -348,24 +352,25 @@ st.write(f"# Here is a breakdown of {title} portfolio \n")
 # Show portfolio and sidebar
 positions_df, realised_gains, unrealised_gains, portfolio_size, available_cash = get_data(df)
 st.sidebar.header('Your Positions')
-st.sidebar.dataframe(positions_df[['stock','equity','qty']].style.format({'qty':'{:.0f}','equity':'{:.0f}'}))
+st.sidebar.dataframe(positions_df)
+# st.sidebar.dataframe(positions_df[['stock','equity','qty']].style.format({'qty':'{:.0f}','equity':'{:.0f}'}))
 df_temp = df.copy()
 df_temp["date"] = df_temp["date"].dt.date
 st.write("### This is the input file you gave")
 st.dataframe(df_temp)
 st.write('### These are your positions')
-# st.dataframe(positions_df)
-st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.0f}','equity':'{:.0f}','P&L':'{:.0f}'}))
+st.dataframe(positions_df)
+# st.dataframe(positions_df.style.format({'price':'{:.2f}','current_prices':'{:.2f}','qty':'{:.0f}','equity':'{:.0f}','P&L':'{:.0f}'}))
 download=st.sidebar.button('Download positions file')
 if download:
     "Download Started! Please wait a link will appear below for your to download the file"
     csv = positions_df.to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()  # some strings
+    b64 = base64.b64encode(csv.encode()).decode()
     linko = f'<a href="data:file/csv;base64,{b64}" download="myfilename.csv">Download csv file</a>'
     st.sidebar.markdown(linko, unsafe_allow_html=True)
 
-# Show plots
-col1,col2 = st.columns((1,1))   
+# Show Analytical Plots
+col1,col2 = st.beta_columns((1,1))   
 
 # Line plot
 fig = ahv_chart(positions_df)
@@ -378,3 +383,36 @@ fig = positions_pie(positions_df)
 st.plotly_chart(fig)
 fig = industry_pie(positions_df)
 st.write(fig)
+
+# Prescription section
+st.write(f"""# Here are some recommendations for your portfolio \n""")
+
+# Correlation
+correlation_threshold = 0.5
+correlation_status, heatmap = correlation(positions_df, correlation_threshold)
+st.write(f"""## Correlation Check: **{correlation_status}**""")
+correlation_threshold = st.slider("Input your threshold correlation value", min_value=0.0, max_value=1.0, value=0.5)
+if correlation_status == "Failed":
+    my_expander = st.beta_expander(label="Show More")
+    my_expander.pyplot(heatmap)
+
+# Distribution
+distribution_threshold = 0.5
+asset_distribution_status = asset_distribution(positions_df, distribution_threshold)
+st.write(f"""## Asset Distribution Check: **{asset_distribution_status}**""")
+distribution_threshold = st.slider("Input your asset distribution threshold", min_value=0.0, max_value=1.0, value=0.5)
+
+# Sharpe Ratio
+vol_portfolio, ret_portfolio, sharpe_value, fig1 , fig2 = main(positions_df)
+st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=1.0, value=0.5)
+st.write(vol_portfolio)
+st.write(volatility_check(vol_portfolio))
+
+st.write(ret_portfolio)
+st.write(sharpe_value)
+st.write(volatility_check(sharpe_value))
+
+st.write(fig1)
+st.write(fig2)
+
+
