@@ -12,7 +12,7 @@ from scipy.stats import norm
 from tabulate import tabulate
 
 
-def main(positions_df):
+def main(input_df, positions_df):
     
     #prepro
     portfolio_value = 0
@@ -20,11 +20,12 @@ def main(positions_df):
         portfolio_value += positions_df['qty'][i]*positions_df['current_prices'][i]
     positions_df['weights'] = [((positions_df['current_prices'][i]*positions_df['qty'][i])/portfolio_value) for i in range(len(positions_df))]
         
-    start_date = '2019-01-01'
-    end_date = '2021-11-04'
+    start_date = input_df.date.min()
+    end_date = dt.date.today()
     tickers = positions_df.stock.unique()
     panel_data = data.DataReader(tickers,'yahoo', start_date, end_date)
-    panel_data = panel_data.loc['2019-01-01':'2021-11-04']
+    # panel_data = panel_data.loc['2019-01-01':'2021-11-04']
+    panel_data = panel_data.loc[start_date: end_date]
     closes_1y = panel_data[['Close', 'Adj Close']]
     
     # Return Series
@@ -59,8 +60,11 @@ def main(positions_df):
             ])
         )
     )
-#     fig.show()
-    
+    fig1.update_layout(
+        autosize=False,
+        width=1500,
+        height=500)
+   
     #Multi-line plot using Plotly
     
     return_series_adj_portfolio_df = pd.DataFrame({'Date':return_series_adj_portfolio.index, 'Weighted portfolio returns':return_series_adj_portfolio.values})
@@ -88,7 +92,10 @@ def main(positions_df):
             ])
         )
     )
-#     fig2.show()
+    fig2.update_layout(
+            autosize=False,
+            width=1500,
+            height=500,)
     
     return_series_close = (closes_1y['Close'].pct_change()+ 1).cumprod() - 1 
     weighted_return_series_close_portfolio = weights * (return_series_close)
@@ -134,16 +141,18 @@ def main(positions_df):
 #helper functions
 
 def volatility_check(vol_portfolio, user_input = 0.50):
+    print(vol_portfolio, user_input)
     if vol_portfolio<=user_input:
-        return 'PASS'
+        return 'Pass'
     else:
-        return 'FAIL'
+        return 'Failed'
 
 def sharpe_check(sharpe_value, default = 1):
-    if sharpe_value > default:
-        return 'PASS'
+    print(sharpe_value, default)
+    if sharpe_value >= default:
+        return 'Pass'
     else:
-        return 'FAIL'
+        return 'Failed'
     
 # #call main function
 # start_date = '2019-01-01'

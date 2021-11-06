@@ -82,7 +82,7 @@ def asset_distribution(positions_df, user_input=0.5):
             print("{}: {:.1f}%".format(asset_overthreshold[n],percentage))
     else:
         print("Asset distribution is below the threshold")
-    return check
+    return check, asset_overthreshold, asset_overthreshold_percentage
     
 if __name__ == '__main__':
     pass

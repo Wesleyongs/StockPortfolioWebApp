@@ -370,13 +370,19 @@ if download:
     st.sidebar.markdown(linko, unsafe_allow_html=True)
 
 # Show Analytical Plots
+
+# Full plots
+vol_portfolio, ret_portfolio, sharpe_value, fig1 , fig2 = main(df, positions_df)
+st.write(fig1)
+st.write(fig2)
+
 col1,col2 = st.beta_columns((1,1))   
 
 # Line plot
-fig = ahv_chart(positions_df)
-col1.write(fig)
-fig = pnl_chart(df)
-col2.write(fig)
+# fig = ahv_chart(positions_df)
+# col1.write(fig)
+# fig = pnl_chart(df)
+# col2.write(fig)
 
 # Pie plotly
 fig = positions_pie(positions_df)
@@ -385,7 +391,7 @@ fig = industry_pie(positions_df)
 st.write(fig)
 
 # Prescription section
-st.write(f"""# Here are some recommendations for your portfolio \n""")
+st.write(f"""# Here is an assesment of your portfolio \n""")
 
 # Correlation
 correlation_threshold = 0.5
@@ -398,21 +404,34 @@ if correlation_status == "Failed":
 
 # Distribution
 distribution_threshold = 0.5
-asset_distribution_status = asset_distribution(positions_df, distribution_threshold)
+asset_distribution_status, asset_overthreshold, asset_overthreshold_percentage = asset_distribution(positions_df, distribution_threshold)
 st.write(f"""## Asset Distribution Check: **{asset_distribution_status}**""")
 distribution_threshold = st.slider("Input your asset distribution threshold", min_value=0.0, max_value=1.0, value=0.5)
+if asset_distribution_status == "Failed":
+    my_expander = st.beta_expander(label="Show More")
+    asset_overthreshold_str = ','.join(asset_overthreshold)
+    st.write(f"The following assets exceed your threshold {asset_overthreshold}")
 
-# Sharpe Ratio
-vol_portfolio, ret_portfolio, sharpe_value, fig1 , fig2 = main(positions_df)
-st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=1.0, value=0.5)
-st.write(vol_portfolio)
-st.write(volatility_check(vol_portfolio))
+# Sharpe ratio
+# sharp_threshold = 1
+sharpe_ratio_status = sharpe_check(sharpe_value)
+st.write(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
+sharp_threshold = st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=4.0, value=1.0)
+if sharp_threshold != 1.0:sharpe_ratio_status = sharpe_check(sharpe_value, sharp_threshold)
+if sharpe_ratio_status == "Failed":
+    my_expander = st.beta_expander(label="Show More")
+    st.write(f"Your sharpe ratio is higher than your threshold at {sharpe_value}")
 
-st.write(ret_portfolio)
-st.write(sharpe_value)
-st.write(volatility_check(sharpe_value))
 
-st.write(fig1)
-st.write(fig2)
+# vol Ratio
+# volatility_threshold = 0.5
+volatility_status = volatility_check(vol_portfolio)
+st.write(f"""## Volatility Check: **{volatility_status}**""")
+volatility_threshold = st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=1.0, value=0.5)
+if volatility_status == "Failed":
+    my_expander = st.beta_expander(label="Show More")
+    st.write(f"Your sharpe ratio is higher than your threshold at {vol_portfolio}")
+
+st.write(sharpe_value, sharp_threshold)
 
 
