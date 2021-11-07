@@ -372,8 +372,9 @@ if download:
 # Show Analytical Plots
 
 # Full plots
+# TODO: Remove top line
 vol_portfolio, ret_portfolio, sharpe_value, fig1 , fig2 = main(df, positions_df)
-st.write(fig1)
+# st.write(fig1)
 st.write(fig2)
 
 col1,col2 = st.beta_columns((1,1))   
@@ -391,47 +392,51 @@ fig = industry_pie(positions_df)
 st.write(fig)
 
 # Prescription section
-st.write(f"""# Here is an assesment of your portfolio \n""")
+st.write(f"""# Here are some assesments of your portfolio \n""")
+
+#sliders
+correlation_threshold = st.slider("Input your threshold correlation value", min_value=0.0, max_value=1.0, value=0.5)
+distribution_threshold = st.slider("Input your asset distribution threshold", min_value=0.0, max_value=1.0, value=0.5)
 
 # Correlation
-correlation_threshold = 0.5
+# TODO: We fix the correlation to 0.8, let them choose proportion of stock 
 correlation_status, heatmap = correlation(positions_df, correlation_threshold)
-st.write(f"""## Correlation Check: **{correlation_status}**""")
-correlation_threshold = st.slider("Input your threshold correlation value", min_value=0.0, max_value=1.0, value=0.5)
+if correlation_status=='Passed':st.success(f"""## Correlation Check: **{correlation_status}**""")
+elif correlation_status=='Failed':st.error(f"""## Correlation Check: **{correlation_status}**""")
 if correlation_status == "Failed":
     my_expander = st.beta_expander(label="Show More")
     my_expander.pyplot(heatmap)
 
 # Distribution
-distribution_threshold = 0.5
 asset_distribution_status, asset_overthreshold, asset_overthreshold_percentage = asset_distribution(positions_df, distribution_threshold)
-st.write(f"""## Asset Distribution Check: **{asset_distribution_status}**""")
-distribution_threshold = st.slider("Input your asset distribution threshold", min_value=0.0, max_value=1.0, value=0.5)
+if asset_distribution_status=='Passed':st.success(f"""## Asset Distribution Check: **{asset_distribution_status}**""")
+if asset_distribution_status=='Failed':st.error(f"""## Asset Distribution Check: **{asset_distribution_status}**""")
 if asset_distribution_status == "Failed":
     my_expander = st.beta_expander(label="Show More")
     asset_overthreshold_str = ','.join(asset_overthreshold)
-    st.write(f"The following assets exceed your threshold {asset_overthreshold}")
+    my_expander.write(f"The following assets exceed your threshold {asset_overthreshold_str}")
+    my_expander.write(ahv_chart(positions_df))
 
 # Sharpe ratio
-# sharp_threshold = 1
 sharpe_ratio_status = sharpe_check(sharpe_value)
-st.write(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
-sharp_threshold = st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=4.0, value=1.0)
-if sharp_threshold != 1.0:sharpe_ratio_status = sharpe_check(sharpe_value, sharp_threshold)
-if sharpe_ratio_status == "Failed":
-    my_expander = st.beta_expander(label="Show More")
-    st.write(f"Your sharpe ratio is higher than your threshold at {sharpe_value}")
+if sharpe_ratio_status=='Excellent':st.success(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
+elif sharpe_ratio_status=='Great':st.success(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
+elif sharpe_ratio_status=='Decent':st.info(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
+elif sharpe_ratio_status=='Bad':st.error(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
+# sharp_threshold = st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=4.0, value=float(sharpe_value))
+# if sharp_threshold != 1.0:sharpe_ratio_status = sharpe_check(sharpe_value, sharp_threshold)
+# if sharpe_ratio_status == "Failed":
+my_expander = st.beta_expander(label="Show More")
+my_expander.write(f"Your sharpe ratio is {round(sharpe_value,2)}")
 
 
 # vol Ratio
-# volatility_threshold = 0.5
+# TODO: Let them choose the threshold for volatility
 volatility_status = volatility_check(vol_portfolio)
-st.write(f"""## Volatility Check: **{volatility_status}**""")
-volatility_threshold = st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=1.0, value=0.5)
-if volatility_status == "Failed":
-    my_expander = st.beta_expander(label="Show More")
-    st.write(f"Your sharpe ratio is higher than your threshold at {vol_portfolio}")
-
-st.write(sharpe_value, sharp_threshold)
-
+if volatility_status=='Good':st.success(f"""## Volatility Check: **{volatility_status}**""")
+elif volatility_status=='Bad':st.error(f"""## Volatility Check: **{volatility_status}**""")
+# volatility_threshold = st.slider("Your Volatility Performance", min_value=0.0, max_value=1.0, value=float(vol_portfolio))
+# my_bar = st.progress(float(vol_portfolio))
+my_expander = st.beta_expander(label="Show More")
+my_expander.write(f"Your sharpe ratio is {round(vol_portfolio,2)}")
 

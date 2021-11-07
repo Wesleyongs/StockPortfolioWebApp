@@ -75,7 +75,7 @@ def main(input_df, positions_df):
     
     fig2 = px.line(return_series_adj_portfolio_df, x="Date", y=return_series_adj_portfolio_df.columns,
               hover_data={"Date": "|%B %d, %Y"},
-              title='custom tick labels')
+              title='Weighted Portfolio Returns')
 
 
     fig2.update_xaxes(
@@ -143,16 +143,20 @@ def main(input_df, positions_df):
 def volatility_check(vol_portfolio, user_input = 0.50):
     print(vol_portfolio, user_input)
     if vol_portfolio<=user_input:
-        return 'Pass'
+        return 'Good'
     else:
-        return 'Failed'
+        return 'Bad'
 
-def sharpe_check(sharpe_value, default = 1):
-    print(sharpe_value, default)
-    if sharpe_value >= default:
-        return 'Pass'
+def sharpe_check(sharpe_value):
+    print(sharpe_value)
+    if sharpe_value >= 3:
+        return 'Excellent'
+    elif sharpe_value >= 2:
+        return 'Great'
+    elif sharpe_value >= 1:
+        return 'Decent'
     else:
-        return 'Failed'
+        return 'Bad'
     
 # #call main function
 # start_date = '2019-01-01'
