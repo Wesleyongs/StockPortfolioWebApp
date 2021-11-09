@@ -44,7 +44,6 @@ def main(input_df, positions_df):
     #Single Line Plot using Plotly
     sf = return_series_adj_portfolio
     return_series_adj_portfolio_df = pd.DataFrame({'Date':sf.index, 'Weighted Portfolio Returns':sf.values})
-    return_series_adj_portfolio_df.head()
 
     fig1 = px.line(return_series_adj_portfolio_df, x='Date', y='Weighted Portfolio Returns', title='Time Series with Range Slider and Selectors')
 
@@ -101,11 +100,11 @@ def main(input_df, positions_df):
     weighted_return_series_close_portfolio = weights * (return_series_close)
     return_series_close_portfolio = weighted_return_series_close_portfolio.sum(axis=1)
 
-    ret_portfolio = return_series_adj_portfolio.tail(1)
+    ret_portfolio = (1+return_series_adj_portfolio.tail(1))**(1/2)-1
 
     vol_portfolio = np.sqrt(252) * np.log((return_series_close_portfolio+1)/(return_series_close_portfolio+1).shift(1)).std()
 
-    risk_free_ann_ret_rate = 0.01
+    risk_free_ann_ret_rate = 1.1
 
     returns_ts = closes_1y['Adj Close'].pct_change().dropna()
     avg_daily_ret = returns_ts.mean()
@@ -136,12 +135,10 @@ def main(input_df, positions_df):
     sharpe_value = sharpe_portfolio['wt_portfolio']
     
         
-    return vol_portfolio, ret_portfolio, sharpe_value, fig1, fig2
+    return vol_portfolio, ret_portfolio.reset_index().iloc[0,1], sharpe_value, fig1, fig2
 
 #helper functions
-
 def volatility_check(vol_portfolio, user_input = 0.50):
-    print(vol_portfolio, user_input)
     if vol_portfolio<=user_input:
         return 'Good'
     else:
@@ -158,25 +155,11 @@ def sharpe_check(sharpe_value):
     else:
         return 'Bad'
     
-# #call main function
-# start_date = '2019-01-01'
-# end_date = '2021-11-04'
-# main(start_date, end_date)
-
-# #call volatility and sharpe checks
-# value = main(start_date, end_date)
-
-# volatility = value[0]
-# sharpe = value[2]
-# portfolio_returns = value[1]
-# fig1 = value[3]
-# fig2 = value[4]
-
-# volatility_check = volatility_check(volatility)
-# sharpe_check = sharpe_check(sharpe)
-
-# print(f"Check for Volatility: {volatility_check}")
-# print(f"Check for Sharpe Ratio: {sharpe_check}")
-    
+def ar_check(ret_portfolio, input_ar=2):
+    if ret_portfolio > input_ar:
+        return 'Passed'
+    else:
+        return 'Failed'
+      
 if __name__ == '__main__':
     pass

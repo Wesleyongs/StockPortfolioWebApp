@@ -37,6 +37,8 @@ import yfinance as yf
 
 from correlation_asset_distribution import *
 from volatility_sharpe import *
+from ml import *
+from convex_optimization import *
 
 # Heading
 st.set_page_config(layout="wide")
@@ -142,7 +144,7 @@ def get_data(df):
 
     date = dt.date.today() - dt.timedelta(days=1)
 
-    panel_data = data.DataReader(tickers, "yahoo", date, date)
+    panel_data = data.DataReader(tickers, "yahoo", date)
 
     current_prices = []
 
@@ -333,7 +335,7 @@ def pnl_chart(df_input):
 uploaded_file = st.file_uploader("Upload CSV file", type="csv")
 csv = "input.csv"
 b64 = base64.b64encode(csv.encode()).decode()  # some strings
-linko = f'<a href="data:file/csv;base64,{b64}" download="input.csv">Download sample csv file</a>'
+linko = f'<a href="data:file/csv;base64,{b64}" download="files/input.csv">Download sample csv file</a>'
 st.markdown(linko, unsafe_allow_html=True)
 
 if uploaded_file is not None:
@@ -376,6 +378,8 @@ if download:
 vol_portfolio, ret_portfolio, sharpe_value, fig1 , fig2 = main(df, positions_df)
 # st.write(fig1)
 st.write(fig2)
+st.write(ahv_chart(positions_df))
+
 
 col1,col2 = st.beta_columns((1,1))   
 
@@ -389,23 +393,28 @@ col1,col2 = st.beta_columns((1,1))
 fig = positions_pie(positions_df)
 st.plotly_chart(fig)
 fig = industry_pie(positions_df)
-st.write(fig)
+st.plotly_chart(fig)
 
 # Prescription section
-st.write(f"""# Here are some assesments of your portfolio \n""")
+st.write(f"""# Portfolio Assesment \n""")
+st.header('Input Fields')
 
 #sliders
-correlation_threshold = st.slider("Input your threshold correlation value", min_value=0.0, max_value=1.0, value=0.5)
-distribution_threshold = st.slider("Input your asset distribution threshold", min_value=0.0, max_value=1.0, value=0.5)
+# correlation_threshold = st.slider("Input your threshold correlation value I.E. Any combination of stocks that exceed this correlation value will be flagged out", min_value=0.0, max_value=1.0, value=0.8)
+correlation_threshold = 0.8
+max_proportion = st.slider("Proportion of portfolio that is allowed to exceed the correlation treshold", min_value=0.0, max_value=1.0, value=0.5)
+distribution_threshold = st.slider("Input your asset distribution threshold I.E. No proportion of one asset should exceed this percentage", min_value=0.0, max_value=1.0, value=0.3)
+vol_threshold = st.slider("Input your volatility threshold I.E. Any asset that exceed this volatility treshold will get flagged out", min_value=0.0, max_value=1.0, value=0.5)
+ar_input = st.slider("Input your expected annualised return percentage", min_value=0.0, max_value=1.0, value=0.1)
+st.header('Results')
 
 # Correlation
-# TODO: We fix the correlation to 0.8, let them choose proportion of stock 
-correlation_status, heatmap = correlation(positions_df, correlation_threshold)
+correlation_status, heatmap = correlation(positions_df, correlation_threshold, max_proportion)
 if correlation_status=='Passed':st.success(f"""## Correlation Check: **{correlation_status}**""")
 elif correlation_status=='Failed':st.error(f"""## Correlation Check: **{correlation_status}**""")
 if correlation_status == "Failed":
     my_expander = st.beta_expander(label="Show More")
-    my_expander.pyplot(heatmap)
+    my_expander.write(heatmap)
 
 # Distribution
 asset_distribution_status, asset_overthreshold, asset_overthreshold_percentage = asset_distribution(positions_df, distribution_threshold)
@@ -415,28 +424,56 @@ if asset_distribution_status == "Failed":
     my_expander = st.beta_expander(label="Show More")
     asset_overthreshold_str = ','.join(asset_overthreshold)
     my_expander.write(f"The following assets exceed your threshold {asset_overthreshold_str}")
-    my_expander.write(ahv_chart(positions_df))
-
+    fig = positions_pie(positions_df)
+    my_expander.write(fig)
+else:
+    my_expander = st.beta_expander(label="Show More")
+    my_expander.write(f"None of your assets exceed your threshold capital distribution of {distribution_threshold}")
+    
 # Sharpe ratio
 sharpe_ratio_status = sharpe_check(sharpe_value)
 if sharpe_ratio_status=='Excellent':st.success(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
 elif sharpe_ratio_status=='Great':st.success(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
 elif sharpe_ratio_status=='Decent':st.info(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
 elif sharpe_ratio_status=='Bad':st.error(f"""## Sharpe Ratio Check: **{sharpe_ratio_status}**""")
-# sharp_threshold = st.slider("Input your threshold sharpe ratio", min_value=0.0, max_value=4.0, value=float(sharpe_value))
-# if sharp_threshold != 1.0:sharpe_ratio_status = sharpe_check(sharpe_value, sharp_threshold)
-# if sharpe_ratio_status == "Failed":
 my_expander = st.beta_expander(label="Show More")
 my_expander.write(f"Your sharpe ratio is {round(sharpe_value,2)}")
 
 
 # vol Ratio
-# TODO: Let them choose the threshold for volatility
-volatility_status = volatility_check(vol_portfolio)
+volatility_status = volatility_check(vol_portfolio, vol_threshold)
 if volatility_status=='Good':st.success(f"""## Volatility Check: **{volatility_status}**""")
 elif volatility_status=='Bad':st.error(f"""## Volatility Check: **{volatility_status}**""")
-# volatility_threshold = st.slider("Your Volatility Performance", min_value=0.0, max_value=1.0, value=float(vol_portfolio))
-# my_bar = st.progress(float(vol_portfolio))
 my_expander = st.beta_expander(label="Show More")
-my_expander.write(f"Your sharpe ratio is {round(vol_portfolio,2)}")
+my_expander.write(f"Your portfolio volatility is {round(vol_portfolio,2)}  \n  Your threshold is {vol_threshold}")
+
+# Annusalised returns
+ar_check = ar_check(ret_portfolio, ar_input)
+if volatility_status=='Good':st.success(f"""## Annualised Returns Check: **{ar_check}**""")
+elif volatility_status=='Bad':st.error(f"""## Annualised Returns Check: **{ar_check}**""")
+my_expander = st.beta_expander(label="Show More")
+my_expander.write(f"Your annualised return is {round(ret_portfolio,2)}")
+
+#convex_optimization
+st.title('Convex optimization')
+st.header('Your portfolio can have the following status, if you follow our weight redistribution recommendations')
+fig, output_str, noRFAP = Portfolio_Optimization(positions_df.stock.unique())
+st.markdown(f"{output_str}")
+my_expander = st.beta_expander(label="Show More")
+my_expander.plotly_chart(fig)
+my_expander.bar_chart(noRFAP)
+ 
+# ML Recommendations
+st.write(f"""# ML FORECASTS \n""")
+ml_ticker = st.text_input('Input ticker of stock you want evaluated', value="TSLA")
+ml_upside = st.slider("Desired upsize I.E. 7% gain", min_value=0.01, max_value=1.00, value=0.07)
+ml_time_horizon = st.number_input('Trade Horizon', min_value=7, max_value=31, value=21)
+signal, cfsn_matrix, metrics = get_trade_signal(ticker=ml_ticker, price_mvmt=ml_upside, trd_days=ml_time_horizon)
+st.write(f"### Recommendation: **{signal}**""")
+my_expander = st.beta_expander(label="Show More")
+my_expander.write(f"The following recommendatoin model was trained using RandomForestClassify and over 20years of data.")
+my_expander.write(cfsn_matrix)
+
+
+
 

@@ -15,8 +15,8 @@ import seaborn as sns
 # In[3]:
 
 # Check1: Correlation between stocks. Outputs fig, check_status
-# TODO: Add in parameter so user can choose own threshold
-def correlation(positions_df, threshold=0.5):
+# TODO: Change the date from hardcode to today's date
+def correlation(positions_df, threshold=0.8, max_proportion=0.5):
 
     #Yahoo finance
     tickers = positions_df['stock'].tolist()
@@ -45,7 +45,7 @@ def correlation(positions_df, threshold=0.5):
         if(abs(i) >= threshold):
             count+=1
     count = count-length
-    if count/total>=0.5:
+    if count/total>max_proportion:
         check= "Failed"
         print("More than 50% of the stock that are highly positively correlated")
     else:
