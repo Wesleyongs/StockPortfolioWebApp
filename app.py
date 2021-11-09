@@ -223,7 +223,7 @@ def industry_pie(positions_df):
         width=1500,
         height=500,
         font=dict(
-            size=10,
+            size=15,
         ),
         # Add annotations in the center of the donut pies.
         annotations=[
@@ -236,42 +236,57 @@ def industry_pie(positions_df):
 
 
 def positions_pie(positions_df):
-    labels = positions_df["stock"]
+
+    portfolio_value = 0
+    for i in range(len(positions_df)):
+        portfolio_value += positions_df['qty'][i] * \
+            positions_df['current_prices'][i]
+    tickers = positions_df['stock'].tolist()
+    positions_df['weights'] = [((positions_df['current_prices'][i]*positions_df['qty']
+                                [i])/portfolio_value) for i in range(len(positions_df))]
+    positions_df_copy = positions_df
+    low_weight_df_sum_weight = positions_df_copy.query('weights < 0.02')[
+        'weights'].sum()
+    low_weight_df_sum_qty = positions_df_copy.query('weights < 0.02')[
+        'qty'].mean()
+    low_weight_df_sum_price = positions_df_copy.query('weights < 0.02')[
+        'price'].mean()
+    low_weight_df_sum_cprice = positions_df_copy.query(
+        'weights < 0.02')['current_prices'].mean()
+    low_weight_df_sum_pnl = positions_df_copy.query('weights < 0.02')[
+        'P&L'].mean()
+    positions_df_copy.drop(
+        positions_df_copy[(positions_df_copy['weights'] < 0.02)].index, inplace=True)
+    new_row = {'stock': 'Others', 'qty': low_weight_df_sum_qty, 'price': low_weight_df_sum_price,
+               'current_prices': low_weight_df_sum_cprice, 'P&L': low_weight_df_sum_pnl, 'weights': low_weight_df_sum_weight}
+    positions_df_copy = positions_df_copy.append(new_row, ignore_index=True)
+    positions_df_copy
+
+    labels = positions_df_copy['stock']
 
     # Create subplots: use 'domain' type for Pie subplot
-    fig = make_subplots(
-        rows=1, cols=2, specs=[[{"type": "domain"}, {"type": "domain"}]]
-    )
-    fig.add_trace(
-        go.Pie(
-            labels=labels,
-            values=positions_df["qty"] * positions_df["current_prices"],
-            name="Asset",
-        ),
-        1,
-        1,
-    )
-    fig.add_trace(go.Pie(labels=labels, values=positions_df["P&L"], name="P&L"), 1, 2)
+    fig = make_subplots(rows=1, cols=2, specs=[
+                        [{'type': 'domain'}, {'type': 'domain'}]])
+    fig.add_trace(go.Pie(labels=labels, values=positions_df_copy['qty']*positions_df_copy['current_prices'], name="Asset"),
+                  1, 1)
+    fig.add_trace(go.Pie(labels=labels, values=positions_df_copy['P&L'], name="P&L"),
+                  1, 2)
 
     # Use `hole` to create a donut-like pie chart
-    fig.update_traces(hole=0.5)
-    fig.update_traces(textposition="outside", textinfo="label+value")
-    fig.update_layout(showlegend=False)
+    fig.update_traces(hole=.5)
+
     fig.update_layout(
         title_text="Portfolio Breakdown",
         width=1500,
         height=500,
         font=dict(
-            size=10,
+            size=15,
         ),
         # Add annotations in the center of the donut pies.
-        annotations=[
-            dict(text="Asset", x=0.19, y=0.5, font_size=20, showarrow=False),
-            dict(text="P&L", x=0.80, y=0.5, font_size=20, showarrow=False),
-        ],
-    )
+        annotations=[dict(text='Asset', x=0.19, y=0.5, font_size=20, showarrow=False),
+                     dict(text='P&L', x=0.80, y=0.5, font_size=20, showarrow=False)])
+#     fig.show()
     return fig
-
 
 def ahv_chart(df_portfolio):
     tickers = list(df_portfolio["stock"])
@@ -377,13 +392,10 @@ if download:
 # TODO: Remove top line
 vol_portfolio, ret_portfolio, sharpe_value, fig1 , fig2 = main(df, positions_df)
 # st.write(fig1)
-st.write(fig2)
 st.write(ahv_chart(positions_df))
 
-
-col1,col2 = st.beta_columns((1,1))   
-
 # Line plot
+# col1,col2 = st.beta_columns((1,1))   
 # fig = ahv_chart(positions_df)
 # col1.write(fig)
 # fig = pnl_chart(df)
@@ -392,6 +404,7 @@ col1,col2 = st.beta_columns((1,1))
 # Pie plotly
 fig = positions_pie(positions_df)
 st.plotly_chart(fig)
+
 fig = industry_pie(positions_df)
 st.plotly_chart(fig)
 
