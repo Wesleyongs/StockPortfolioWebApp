@@ -41,7 +41,8 @@ from ml import *
 from convex_optimization import *
 
 # Heading
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Porfolio Optimizer")
+
 st.write(
     """
 # Portfolio Analysis
@@ -469,8 +470,24 @@ my_expander.write(f"Your annualised return is {round(ret_portfolio,2)}")
 
 #convex_optimization
 st.title('Convex optimization')
+col1, col2, col3 = st.beta_columns((1,1,1))
+risk_free_rate = col1.number_input('Risk Free Rate', value=1.1)
+risk_free_asset = col2.selectbox('Rise Free Asset', options=[False , True ])
+disable_chart_tickers = col3.selectbox('Chart Tickers', options=[True, False])
+
+col1, col2 = st.beta_columns((1,1))
+max_risk_input = col1.number_input('Max Risk', value=0.0)
+max_risk_cb = col1.checkbox('Check here for Max Risk = None', value=True)
+if max_risk_cb == True: max_risk=None
+else: max_risk=max_risk_input
+
+annual_expected_return_input = col2.number_input('Expected Annualised Returns', value=0.0)
+annual_expected_return_cb = col2.checkbox('Check here for AR = None', value=True)
+if annual_expected_return_cb == True: annual_expected_return=None
+else: annual_expected_return=annual_expected_return_input
+
 st.header('Your portfolio can have the following status, if you follow our weight redistribution recommendations')
-fig, output_str, noRFAP = Portfolio_Optimization(positions_df.stock.unique())
+fig, output_str, noRFAP = Portfolio_Optimization(positions_df.stock.unique(), risk_free_rate=risk_free_rate, max_risk=max_risk, annual_expected_return=annual_expected_return, risk_free_asset=risk_free_asset, disable_chart_tickers=np.invert(disable_chart_tickers))
 st.markdown(f"{output_str}")
 my_expander = st.beta_expander(label="Show More")
 my_expander.plotly_chart(fig)
