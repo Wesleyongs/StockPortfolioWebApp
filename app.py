@@ -41,7 +41,7 @@ from ml import *
 from convex_optimization import *
 
 # Heading
-st.set_page_config(layout="wide", page_title="Porfolio Optimizer", page_icon="favicon.png")
+st.set_page_config(layout="wide", page_title="Portfolio Optimizer", page_icon="favicon.png")
 
 st.write(
     """
