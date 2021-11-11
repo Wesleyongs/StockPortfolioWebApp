@@ -391,7 +391,7 @@ if download:
 # Full plots
 # TODO: Remove top line
 vol_portfolio, ret_portfolio, sharpe_value, fig1 , fig2 = main(df, positions_df)
-# st.write(fig1)
+st.write(fig1)
 st.write(ahv_chart(positions_df))
 
 # Line plot
@@ -402,8 +402,8 @@ st.write(ahv_chart(positions_df))
 # col2.write(fig)
 
 # Pie plotly
-fig = positions_pie(positions_df)
-st.plotly_chart(fig)
+positions_pie_fig = positions_pie(positions_df)
+st.plotly_chart(positions_pie_fig)
 
 fig = industry_pie(positions_df)
 st.plotly_chart(fig)
@@ -437,10 +437,10 @@ if asset_distribution_status == "Failed":
     my_expander = st.beta_expander(label="Show More")
     asset_overthreshold_str = ','.join(asset_overthreshold)
     my_expander.write(f"The following assets exceed your threshold {asset_overthreshold_str}")
-    # fig = positions_pie(positions_df)
-    # my_expander.write(fig)
+    my_expander.plotly_chart(positions_pie_fig)
 else:
     my_expander = st.beta_expander(label="Show More")
+    st.plotly_chart(positions_pie_fig)
     my_expander.write(f"None of your assets exceed your threshold capital distribution of {distribution_threshold}")
     
 # Sharpe ratio
