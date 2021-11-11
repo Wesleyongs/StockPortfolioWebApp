@@ -260,7 +260,6 @@ def positions_pie(positions_df):
     new_row = {'stock': 'Others', 'qty': low_weight_df_sum_qty, 'price': low_weight_df_sum_price,
                'current_prices': low_weight_df_sum_cprice, 'P&L': low_weight_df_sum_pnl, 'weights': low_weight_df_sum_weight}
     positions_df_copy = positions_df_copy.append(new_row, ignore_index=True)
-    positions_df_copy
 
     labels = positions_df_copy['stock']
 
@@ -285,7 +284,6 @@ def positions_pie(positions_df):
         # Add annotations in the center of the donut pies.
         annotations=[dict(text='Asset', x=0.19, y=0.5, font_size=20, showarrow=False),
                      dict(text='P&L', x=0.80, y=0.5, font_size=20, showarrow=False)])
-#     fig.show()
     return fig
 
 def ahv_chart(df_portfolio):
@@ -313,6 +311,8 @@ def ahv_chart(df_portfolio):
         y="Annualized Historical Volatility",
         title="Annualized Historical Volatility of individual stocks in portfolio",
         color="Ticker",
+        width=1500,
+        height=500
     )
 
 
@@ -415,14 +415,14 @@ st.header('Input Fields')
 #sliders
 # correlation_threshold = st.slider("Input your threshold correlation value I.E. Any combination of stocks that exceed this correlation value will be flagged out", min_value=0.0, max_value=1.0, value=0.8)
 correlation_threshold = 0.8
-max_proportion = st.slider("Proportion of portfolio that is allowed to exceed the correlation treshold", min_value=0.0, max_value=1.0, value=0.5)
+max_proportion = st.slider("Input the proportion of portfolio that is allowed to exceed the correlation treshold", min_value=0.0, max_value=1.0, value=0.5)
 distribution_threshold = st.slider("Input your asset distribution threshold I.E. No proportion of one asset should exceed this percentage", min_value=0.0, max_value=1.0, value=0.3)
-vol_threshold = st.slider("Input your volatility threshold I.E. Any asset that exceed this volatility treshold will get flagged out", min_value=0.0, max_value=1.0, value=0.5)
+vol_threshold = st.slider("Input your threshold annualised volatility", min_value=0.0, max_value=1.0, value=0.5)
 ar_input = st.slider("Input your expected annualised return percentage", min_value=0.0, max_value=1.0, value=0.1)
 st.header('Results')
 
 # Correlation
-correlation_status, heatmap = correlation(positions_df, correlation_threshold, max_proportion)
+correlation_status, heatmap = correlation(positions_df, df, correlation_threshold, max_proportion)
 if correlation_status=='Passed':st.success(f"""## Correlation Check: **{correlation_status}**""")
 elif correlation_status=='Failed':st.error(f"""## Correlation Check: **{correlation_status}**""")
 if correlation_status == "Failed":
@@ -437,8 +437,8 @@ if asset_distribution_status == "Failed":
     my_expander = st.beta_expander(label="Show More")
     asset_overthreshold_str = ','.join(asset_overthreshold)
     my_expander.write(f"The following assets exceed your threshold {asset_overthreshold_str}")
-    fig = positions_pie(positions_df)
-    my_expander.write(fig)
+    # fig = positions_pie(positions_df)
+    # my_expander.write(fig)
 else:
     my_expander = st.beta_expander(label="Show More")
     my_expander.write(f"None of your assets exceed your threshold capital distribution of {distribution_threshold}")

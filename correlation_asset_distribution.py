@@ -16,12 +16,15 @@ import seaborn as sns
 
 # Check1: Correlation between stocks. Outputs fig, check_status
 # TODO: Change the date from hardcode to today's date
-def correlation(positions_df, threshold=0.8, max_proportion=0.5):
+def correlation(positions_df, input_df, threshold=0.8, max_proportion=0.5):
 
     #Yahoo finance
-    tickers = positions_df['stock'].tolist()
-    start_date = '2019-01-01'
-    end_date = '2021-11-04'
+    start_date = input_df.date.min()
+    end_date = dt.date.today()-dt.timedelta(days=1)
+    tickers = positions_df.stock.unique()
+    # tickers = positions_df['stock'].tolist()
+    # start_date = '2019-01-01'
+    # end_date = '2021-11-04'
     panel_data = data.DataReader(tickers,'yahoo', start_date, end_date)
     panel_data= panel_data['Close']
     ret_series= (panel_data.pct_change()+1).cumprod()-1

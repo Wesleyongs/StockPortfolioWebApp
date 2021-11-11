@@ -10,6 +10,7 @@ from pandas_datareader import data
 from plotly.offline import init_notebook_mode, iplot
 from scipy.stats import norm
 from tabulate import tabulate
+import datetime as dt
 
 
 def main(input_df, positions_df):
@@ -21,7 +22,7 @@ def main(input_df, positions_df):
     positions_df['weights'] = [((positions_df['current_prices'][i]*positions_df['qty'][i])/portfolio_value) for i in range(len(positions_df))]
         
     start_date = input_df.date.min()
-    end_date = dt.date.today()
+    end_date = dt.date.today()-dt.timedelta(days=1)
     tickers = positions_df.stock.unique()
     panel_data = data.DataReader(tickers,'yahoo', start_date, end_date)
     # panel_data = panel_data.loc['2019-01-01':'2021-11-04']
