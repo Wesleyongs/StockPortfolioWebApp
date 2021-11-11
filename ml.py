@@ -164,7 +164,7 @@ def get_trade_signal(ticker, price_mvmt, trd_days, signal_date=date.today().strf
     matrix = confusion_matrix(y_test, y_test_pred)
     matrix = matrix.astype('float') / matrix.sum(axis=1)[:, np.newaxis]
     
-    fig, ax1 = plt.subplots(figsize=(10,5))
+    fig, ax1 = plt.subplots(figsize=(16,9))
     sns.heatmap(matrix, annot=True, annot_kws={'size':10},
                 cmap=plt.cm.Greens, linewidths=0.2, ax=ax1)
     class_names = ['Buy', 'Hold', 'Sell']
